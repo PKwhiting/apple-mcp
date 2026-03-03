@@ -19,6 +19,11 @@
       "type": "stdio",
       "command": "node",
       "args": ["/Users/garyriches/Documents/Source/MCP/Apple/reminders/build/index.js"]
+    },
+    "apple-calendar": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/garyriches/Documents/Source/MCP/Apple/calendar/build/index.js"]
     }
   }
 }

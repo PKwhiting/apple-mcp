@@ -11,7 +11,7 @@ A collection of [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 
 | [Apple Contacts](#apple-contacts) | Done | Manage contacts and contact groups |
 | Apple Mail | Planned | Read, send, and manage email |
 | [Apple Reminders](#apple-reminders) | Done | Create and manage reminders and lists |
-| Apple Calendar | Planned | Manage calendar events and schedules |
+| [Apple Calendar](#apple-calendar) | Done | Manage calendar events and schedules |
 | Apple Maps | Planned | Search locations, get directions, and place details |
 
 ## Requirements
@@ -36,6 +36,9 @@ npx @griches/apple-contacts-mcp
 
 # Apple Reminders
 npx @griches/apple-reminders-mcp
+
+# Apple Calendar
+npx @griches/apple-calendar-mcp
 ```
 
 ### Claude Code
@@ -45,6 +48,7 @@ claude mcp add apple-notes -- npx @griches/apple-notes-mcp
 claude mcp add apple-messages -- npx @griches/apple-messages-mcp
 claude mcp add apple-contacts -- npx @griches/apple-contacts-mcp
 claude mcp add apple-reminders -- npx @griches/apple-reminders-mcp
+claude mcp add apple-calendar -- npx @griches/apple-calendar-mcp
 ```
 
 ### Claude Desktop
@@ -69,6 +73,10 @@ Add to your `claude_desktop_config.json`:
     "apple-reminders": {
       "command": "npx",
       "args": ["@griches/apple-reminders-mcp"]
+    },
+    "apple-calendar": {
+      "command": "npx",
+      "args": ["@griches/apple-calendar-mcp"]
     }
   }
 }
@@ -93,6 +101,9 @@ cd ../contacts && npm install && npm run build
 
 # Apple Reminders
 cd ../reminders && npm install && npm run build
+
+# Apple Calendar
+cd ../calendar && npm install && npm run build
 ```
 
 Then configure your MCP client to run the built files directly:
@@ -115,6 +126,10 @@ Then configure your MCP client to run the built files directly:
     "apple-reminders": {
       "command": "node",
       "args": ["/absolute/path/to/reminders/build/index.js"]
+    },
+    "apple-calendar": {
+      "command": "node",
+      "args": ["/absolute/path/to/calendar/build/index.js"]
     }
   }
 }
@@ -224,6 +239,30 @@ An MCP server that interacts with Apple Reminders via AppleScript.
 - "List reminders in my Shopping list"
 - "Create a reminder to buy milk in my Groceries list"
 - "Mark the dentist appointment reminder as done"
+
+---
+
+## Apple Calendar
+
+An MCP server that interacts with Apple Calendar via AppleScript.
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_calendars` | List all calendars |
+| `list_events` | List events in a calendar within a date range |
+| `get_event` | Get full details of an event by summary/title |
+| `create_event` | Create a new event with date, time, location, and description |
+| `delete_event` | Delete an event by summary/title |
+| `search_events` | Search events by summary/title across calendars |
+
+### Usage Examples
+
+- "List my calendars"
+- "Show events in my Work calendar for next week"
+- "Create a meeting tomorrow at 2pm in my Work calendar"
+- "Search for events about standup"
 
 ---
 
