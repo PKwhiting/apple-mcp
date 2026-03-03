@@ -12,13 +12,14 @@ A collection of [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 
 | [Apple Mail](#apple-mail) | Done | Read, send, and manage email |
 | [Apple Reminders](#apple-reminders) | Done | Create and manage reminders and lists |
 | [Apple Calendar](#apple-calendar) | Done | Manage calendar events and schedules |
-| [Apple Maps](#apple-maps) | Done | Search locations, get directions, and place details |
+| [Apple Maps](#apple-maps) | Done | Search locations, get directions, and drop pins (visual only — limited by Apple's automation support) |
 
 ## Requirements
 
 - **macOS** (uses AppleScript and macOS-specific APIs)
 - **Node.js** 18+ (22+ for Apple Messages)
 - **Full Disk Access** granted to your terminal app (System Settings > Privacy & Security > Full Disk Access) — required for reading the Messages database
+- **The associated Apple app must be running** — each MCP server communicates with its corresponding app via AppleScript, so the app (e.g. Contacts, Mail, Notes) needs to be open for the server to function
 
 ## Quick Start
 
@@ -274,14 +275,20 @@ An MCP server that interacts with Apple Reminders via AppleScript.
 
 ## Apple Calendar
 
-An MCP server that interacts with Apple Calendar via AppleScript.
+An MCP server that interacts with Apple Calendar. Read operations use a compiled Swift EventKit binary for fast access (~0.1s vs 50-140s via AppleScript). Write operations use AppleScript.
+
+### Permissions
+
+- **Calendar access**: macOS will prompt you to grant calendar access the first time a read operation is used (System Settings > Privacy & Security > Calendars)
+- **Creating/deleting events**: macOS will prompt you to allow your terminal app to control the Calendar app via AppleScript
 
 ### Tools
 
 | Tool | Description |
 |------|-------------|
 | `list_calendars` | List all calendars |
-| `list_events` | List events in a calendar within a date range |
+| `list_all_events` | List events across all calendars within a date range |
+| `list_events` | List events in a specific calendar within a date range |
 | `get_event` | Get full details of an event by summary/title |
 | `create_event` | Create a new event with date, time, location, and description |
 | `delete_event` | Delete an event by summary/title |
@@ -299,6 +306,8 @@ An MCP server that interacts with Apple Calendar via AppleScript.
 ## Apple Maps
 
 An MCP server that interacts with Apple Maps using Maps URL schemes.
+
+> **Note:** Apple Maps has a very limited AppleScript/automation dictionary compared to other Apple apps. There is no supported way to programmatically read back search results, route details, or location data from Maps. As a result, these tools open Apple Maps with the requested query but cannot return structured data (e.g. addresses, coordinates, distances) to the agent. The results are visual — you'll see them in the Maps app.
 
 ### Tools
 

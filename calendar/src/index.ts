@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import * as applescript from "./applescript.js";
+import * as eventkit from "./eventkit.js";
 
 const server = new McpServer({
   name: "apple-calendar",
@@ -18,8 +19,28 @@ server.registerTool(
   },
   async () => {
     try {
-      const calendars = await applescript.listCalendars();
+      const calendars = await eventkit.listCalendars();
       return { content: [{ type: "text", text: JSON.stringify(calendars, null, 2) }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
+    }
+  }
+);
+
+// ---- list_all_events ----
+server.registerTool(
+  "list_all_events",
+  {
+    description: "List events across ALL calendars within a date range. Use this instead of list_events when you need events from all calendars.",
+    inputSchema: z.object({
+      from_date: z.string().describe("Start date (e.g. '1 January 2025')"),
+      to_date: z.string().describe("End date (e.g. '31 January 2025')"),
+    }),
+  },
+  async ({ from_date, to_date }) => {
+    try {
+      const events = await eventkit.listAllEvents(from_date, to_date);
+      return { content: [{ type: "text", text: JSON.stringify(events, null, 2) }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
     }
@@ -33,13 +54,13 @@ server.registerTool(
     description: "List events in a calendar within a date range",
     inputSchema: z.object({
       calendar: z.string().describe("Name of the calendar"),
-      from_date: z.string().describe("Start date (e.g. 'January 1, 2025')"),
-      to_date: z.string().describe("End date (e.g. 'January 31, 2025')"),
+      from_date: z.string().describe("Start date (e.g. '1 January 2025')"),
+      to_date: z.string().describe("End date (e.g. '31 January 2025')"),
     }),
   },
   async ({ calendar, from_date, to_date }) => {
     try {
-      const events = await applescript.listEvents(calendar, from_date, to_date);
+      const events = await eventkit.listEvents(calendar, from_date, to_date);
       return { content: [{ type: "text", text: JSON.stringify(events, null, 2) }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
@@ -59,7 +80,7 @@ server.registerTool(
   },
   async ({ summary, calendar }) => {
     try {
-      const event = await applescript.getEvent(summary, calendar);
+      const event = await eventkit.getEvent(summary, calendar);
       return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
@@ -75,8 +96,8 @@ server.registerTool(
     inputSchema: z.object({
       calendar: z.string().describe("Name of the calendar to add the event to"),
       summary: z.string().describe("Title/summary of the event"),
-      start_date: z.string().describe("Start date and time (e.g. 'March 15, 2025 at 2:00 PM')"),
-      end_date: z.string().describe("End date and time (e.g. 'March 15, 2025 at 3:00 PM')"),
+      start_date: z.string().describe("Start date and time (e.g. '15 March 2025 at 2:00 PM')"),
+      end_date: z.string().describe("End date and time (e.g. '15 March 2025 at 3:00 PM')"),
       location: z.string().optional().describe("Location of the event"),
       description: z.string().optional().describe("Description or notes for the event"),
       all_day: z.boolean().optional().describe("Whether this is an all-day event"),
@@ -128,7 +149,7 @@ server.registerTool(
   },
   async ({ query, calendar }) => {
     try {
-      const results = await applescript.searchEvents(query, calendar);
+      const results = await eventkit.searchEvents(query, calendar);
       return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
