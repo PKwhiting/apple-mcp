@@ -159,19 +159,15 @@ export async function searchMessages(
     const safeAcct = sanitize(accountName);
     script = `
 tell application "Mail"
+  set results to {}
   set mb to mailbox "${safeMb}" of account "${safeAcct}"
   set matchedMsgs to (every message of mb whose ${field} contains "${safeQuery}")
   set maxCount to ${maxResults}
   set msgCount to count of matchedMsgs
-  if msgCount is 0 then return ""
   if msgCount < maxCount then set maxCount to msgCount
-  set allIds to id of matchedMsgs
-  set allSubjects to subject of matchedMsgs
-  set allSenders to sender of matchedMsgs
-  set allDates to date sent of matchedMsgs
-  set results to {}
   repeat with i from 1 to maxCount
-    set end of results to (item i of allIds as text) & "${FIELD_DELIM}" & item i of allSubjects & "${FIELD_DELIM}" & item i of allSenders & "${FIELD_DELIM}" & (item i of allDates as text) & "${FIELD_DELIM}" & "${safeMb}" & "${FIELD_DELIM}" & "${safeAcct}"
+    set m to item i of matchedMsgs
+    set end of results to (id of m as text) & "${FIELD_DELIM}" & subject of m & "${FIELD_DELIM}" & sender of m & "${FIELD_DELIM}" & (date sent of m as text) & "${FIELD_DELIM}" & "${safeMb}" & "${FIELD_DELIM}" & "${safeAcct}"
   end repeat
   set AppleScript's text item delimiters to "${RECORD_DELIM}"
   return results as text
@@ -184,22 +180,14 @@ tell application "Mail"
   repeat with acct in accounts
     set acctName to name of acct
     repeat with mb in mailboxes of acct
-      if resultCount >= ${maxResults} then exit repeat
       set mbName to name of mb
       set matchedMsgs to (every message of mb whose ${field} contains "${safeQuery}")
-      set msgCount to count of matchedMsgs
-      if msgCount > 0 then
-        set takeCount to ${maxResults} - resultCount
-        if msgCount < takeCount then set takeCount to msgCount
-        set allIds to id of matchedMsgs
-        set allSubjects to subject of matchedMsgs
-        set allSenders to sender of matchedMsgs
-        set allDates to date sent of matchedMsgs
-        repeat with i from 1 to takeCount
-          set end of results to (item i of allIds as text) & "${FIELD_DELIM}" & item i of allSubjects & "${FIELD_DELIM}" & item i of allSenders & "${FIELD_DELIM}" & (item i of allDates as text) & "${FIELD_DELIM}" & mbName & "${FIELD_DELIM}" & acctName
-        end repeat
-        set resultCount to resultCount + takeCount
-      end if
+      repeat with m in matchedMsgs
+        if resultCount >= ${maxResults} then exit repeat
+        set end of results to (id of m as text) & "${FIELD_DELIM}" & subject of m & "${FIELD_DELIM}" & sender of m & "${FIELD_DELIM}" & (date sent of m as text) & "${FIELD_DELIM}" & mbName & "${FIELD_DELIM}" & acctName
+        set resultCount to resultCount + 1
+      end repeat
+      if resultCount >= ${maxResults} then exit repeat
     end repeat
     if resultCount >= ${maxResults} then exit repeat
   end repeat
