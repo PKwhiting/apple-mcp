@@ -28,8 +28,14 @@ All servers (except Apple Maps, which is UI-only) support two optional safety fl
 | Mode | Flag | Behaviour |
 |------|------|-----------|
 | **Normal** (default) | _(none)_ | All tools available, no restrictions |
-| **Read-only** | `--read-only` | Destructive/write tools are not registered at all |
-| **Confirm** | `--confirm-destructive` | Destructive tools require a `confirm: true` parameter; without it they return a warning asking the AI to check with the user first |
+| **Read-only** | `--read-only` | Only read tools are registered. All mutating tools, including non-destructive writes like `send_email` or `send_message`, are removed. |
+| **Confirm** | `--confirm-destructive` | Destructive tools require a `confirm: true` parameter; without it they return a warning asking the AI to check with the user first. Non-destructive write tools remain available. |
+
+In other words:
+
+- `--read-only` removes all write and destructive tools from the server entirely.
+- `--confirm-destructive` only adds confirmation to destructive tools.
+- If both flags are provided, `--read-only` wins because destructive tools are not registered in that mode.
 
 ### Claude Desktop
 
@@ -63,6 +69,7 @@ claude mcp add apple-messages -- npx @griches/apple-messages-mcp --confirm-destr
 | Contacts | `delete_contact`, `delete_group` |
 | Reminders | `delete_reminder`, `delete_list` |
 | Calendar | `delete_event` |
+| Mail | `delete_message` |
 
 ## Installation
 
