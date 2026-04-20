@@ -23,6 +23,9 @@ npx @griches/apple-notes-mcp
 | `delete_note` | Delete a note |
 | `delete_folder` | Delete a folder and all its notes |
 | `search_notes` | Search notes by keyword in titles and body content |
+| `list_notes_safe` | List notes with sanitized titles (`--enable-safe-tools`) |
+| `get_note_safe` | Get sanitized note content by title (`--enable-safe-tools`) |
+| `search_notes_safe` | Search notes with sanitized titles in the result set (`--enable-safe-tools`) |
 
 ## Configuration
 
@@ -30,6 +33,12 @@ npx @griches/apple-notes-mcp
 
 ```bash
 claude mcp add apple-notes -- npx @griches/apple-notes-mcp
+```
+
+To enable the privacy-safe tool variants:
+
+```bash
+claude mcp add apple-notes-safe -- npx @griches/apple-notes-mcp --enable-safe-tools
 ```
 
 ### Claude Desktop
@@ -50,7 +59,13 @@ Add to your `claude_desktop_config.json`:
 ## Requirements
 
 - **macOS** (uses AppleScript)
-- **Node.js** 18+
+- **Node.js** 22+
+- `openredaction` is bundled as the local safe-tool redaction engine; no separate Python runtime is required
+
+## Privacy Flags
+
+- `--enable-safe-tools` registers the privacy-safe read tools alongside the raw tools
+- `--privacy-policy <path>` loads a JSON privacy policy override
 
 ## License
 

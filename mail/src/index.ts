@@ -3,6 +3,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import * as applescript from "./applescript.js";
+import {
+  createSafeJsonResponse,
+  parsePrivacyFlags,
+  type PrivacyFlags,
+  type PrivacyPolicy,
+} from "./privacy.js";
 
 export interface SafetyFlags {
   readOnly: boolean;
@@ -17,6 +23,12 @@ const READ_TOOL_NAMES = [
   "get_unread_count",
 ] as const;
 
+const SAFE_READ_TOOL_NAMES = [
+  "list_messages_safe",
+  "get_message_safe",
+  "search_messages_safe",
+] as const;
+
 const WRITE_TOOL_NAMES = [
   "send_email",
   "move_message",
@@ -26,6 +38,25 @@ const WRITE_TOOL_NAMES = [
 
 const DESTRUCTIVE_TOOL_NAMES = ["delete_message"] as const;
 
+const LIST_MESSAGES_SAFE_POLICY: PrivacyPolicy = {
+  text_fields: ["subject", "sender"],
+};
+
+const GET_MESSAGE_SAFE_POLICY: PrivacyPolicy = {
+  list_alias_fields: {
+    toRecipients: "EMAIL_ADDRESS",
+    ccRecipients: "EMAIL_ADDRESS",
+  },
+  text_fields: ["subject", "sender", "content"],
+  strip_quoted_mail: true,
+  strip_signature_blocks: true,
+  strip_unsubscribe_blocks: true,
+};
+
+const SEARCH_MESSAGES_SAFE_POLICY: PrivacyPolicy = {
+  text_fields: ["subject", "sender"],
+};
+
 export function parseSafetyFlags(argv: string[] = process.argv): SafetyFlags {
   return {
     readOnly: argv.includes("--read-only"),
@@ -33,9 +64,13 @@ export function parseSafetyFlags(argv: string[] = process.argv): SafetyFlags {
   };
 }
 
-export function getRegisteredToolNames(flags: SafetyFlags = parseSafetyFlags()): string[] {
+export function getRegisteredToolNames(
+  flags: SafetyFlags = parseSafetyFlags(),
+  privacyFlags: PrivacyFlags = parsePrivacyFlags()
+): string[] {
   return [
     ...READ_TOOL_NAMES,
+    ...(privacyFlags.enableSafeTools ? SAFE_READ_TOOL_NAMES : []),
     ...(flags.readOnly ? [] : WRITE_TOOL_NAMES),
     ...(flags.readOnly ? [] : DESTRUCTIVE_TOOL_NAMES),
   ];
@@ -45,7 +80,10 @@ export function requiresDestructiveConfirmation(flags: SafetyFlags = parseSafety
   return !flags.readOnly && flags.confirmDestructive;
 }
 
-export function createServer(flags: SafetyFlags = parseSafetyFlags()): McpServer {
+export function createServer(
+  flags: SafetyFlags = parseSafetyFlags(),
+  privacyFlags: PrivacyFlags = parsePrivacyFlags()
+): McpServer {
   const { readOnly, confirmDestructive } = flags;
   const server = new McpServer({
     name: "apple-mail",
@@ -91,6 +129,36 @@ export function createServer(flags: SafetyFlags = parseSafetyFlags()): McpServer
     }
   );
 
+  if (privacyFlags.enableSafeTools) {
+    // ---- list_messages_safe ----
+    server.registerTool(
+      "list_messages_safe",
+      {
+        description: "List recent messages in a mailbox with sanitized subject and sender fields",
+        inputSchema: z.object({
+          mailbox: z.string().describe("Name of the mailbox (e.g. 'INBOX')"),
+          account: z.string().describe("Name of the email account"),
+          limit: z.number().optional().describe("Maximum number of messages to return (default 25)"),
+          unread_only: z.boolean().optional().describe("When true, only return unread messages"),
+          alias_session_id: z.string().optional().describe("Optional alias namespace for stable placeholders"),
+        }),
+      },
+      async ({ mailbox, account, limit, unread_only, alias_session_id }) => {
+        try {
+          const messages = await applescript.listMessages(mailbox, account, limit, unread_only);
+          return await createSafeJsonResponse("messages", messages, {
+            namespace: "mail.list_messages_safe",
+            aliasSessionId: alias_session_id,
+            defaultPolicy: LIST_MESSAGES_SAFE_POLICY,
+            flags: privacyFlags,
+          });
+        } catch (err) {
+          return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
+        }
+      }
+    );
+  }
+
   // ---- get_message ----
   server.registerTool(
     "get_message",
@@ -111,6 +179,35 @@ export function createServer(flags: SafetyFlags = parseSafetyFlags()): McpServer
       }
     }
   );
+
+  if (privacyFlags.enableSafeTools) {
+    // ---- get_message_safe ----
+    server.registerTool(
+      "get_message_safe",
+      {
+        description: "Get the sanitized content of an email message by ID",
+        inputSchema: z.object({
+          mailbox: z.string().describe("Name of the mailbox"),
+          account: z.string().describe("Name of the email account"),
+          message_id: z.number().describe("ID of the message to retrieve"),
+          alias_session_id: z.string().optional().describe("Optional alias namespace for stable placeholders"),
+        }),
+      },
+      async ({ mailbox, account, message_id, alias_session_id }) => {
+        try {
+          const message = await applescript.getMessage(mailbox, account, message_id);
+          return await createSafeJsonResponse("message", message, {
+            namespace: "mail.get_message_safe",
+            aliasSessionId: alias_session_id,
+            defaultPolicy: GET_MESSAGE_SAFE_POLICY,
+            flags: privacyFlags,
+          });
+        } catch (err) {
+          return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
+        }
+      }
+    );
+  }
 
   // ---- search_messages ----
   server.registerTool(
@@ -134,6 +231,37 @@ export function createServer(flags: SafetyFlags = parseSafetyFlags()): McpServer
       }
     }
   );
+
+  if (privacyFlags.enableSafeTools) {
+    // ---- search_messages_safe ----
+    server.registerTool(
+      "search_messages_safe",
+      {
+        description: "Search emails by subject or sender with sanitized results",
+        inputSchema: z.object({
+          query: z.string().describe("Text to search for in email subjects or sender"),
+          mailbox: z.string().optional().describe("Mailbox to search in (searches all if omitted)"),
+          account: z.string().optional().describe("Account to search in (required if mailbox is specified)"),
+          limit: z.number().optional().describe("Maximum number of results (default 25)"),
+          search_field: z.enum(["subject", "sender"]).optional().describe("Field to search: 'subject' (default) or 'sender'"),
+          alias_session_id: z.string().optional().describe("Optional alias namespace for stable placeholders"),
+        }),
+      },
+      async ({ query, mailbox, account, limit, search_field, alias_session_id }) => {
+        try {
+          const results = await applescript.searchMessages(query, mailbox, account, limit, search_field);
+          return await createSafeJsonResponse("results", results, {
+            namespace: "mail.search_messages_safe",
+            aliasSessionId: alias_session_id,
+            defaultPolicy: SEARCH_MESSAGES_SAFE_POLICY,
+            flags: privacyFlags,
+          });
+        } catch (err) {
+          return { content: [{ type: "text", text: `Error: ${(err as Error).message}` }], isError: true };
+        }
+      }
+    );
+  }
 
   // ---- get_unread_count ----
   server.registerTool(

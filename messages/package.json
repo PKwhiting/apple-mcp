@@ -2,9 +2,9 @@
   "name": "@griches/apple-messages-mcp",
   "version": "1.0.0",
   "description": "MCP server for interacting with Apple Messages on macOS",
-  "main": "build/index.js",
+  "main": "build/messages/src/index.js",
   "bin": {
-    "apple-messages-mcp": "build/index.js"
+    "apple-messages-mcp": "build/messages/src/index.js"
   },
   "files": [
     "build/**/*.js",
@@ -12,10 +12,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "start": "node build/index.js",
-    "test": "bun test tests/applescript.test.ts tests/safety.test.ts && node --experimental-strip-types --no-warnings --test tests/database.test.ts",
-    "test:clean": "bun test --bail tests/applescript.test.ts tests/safety.test.ts && node --experimental-strip-types --no-warnings --test tests/database.test.ts",
+    "build": "node -e \"require('node:fs').rmSync('build', { recursive: true, force: true })\" && tsc",
+    "start": "node build/messages/src/index.js",
+    "test": "npm run build && node --experimental-strip-types --no-warnings --test tests/applescript.test.ts tests/safety.test.ts tests/privacy.test.ts tests/database.test.ts",
+    "test:clean": "npm run build && node --experimental-strip-types --no-warnings --test tests/applescript.test.ts tests/safety.test.ts tests/privacy.test.ts tests/database.test.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "openredaction": "^1.1.2",
     "zod": "^3.24.4"
   },
   "devDependencies": {
