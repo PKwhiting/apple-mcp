@@ -1,4 +1,4 @@
-import { createFolder, listNotes, deleteNote, listFolders, runAppleScript, sanitize } from "../src/applescript.js";
+import { createFolder, listNotes, deleteNote, runAppleScript, sanitize } from "../build/notes/src/applescript.js";
 
 export const TEST_FOLDER = "Test-Claude-Notes";
 

@@ -1,38 +1,40 @@
-import { describe, expect, test } from "bun:test";
-import { sanitize } from "../src/applescript.js";
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import { sanitize } from "../build/messages/src/applescript.js";
 
 describe("sanitize", () => {
   test("returns empty string unchanged", () => {
-    expect(sanitize("")).toBe("");
+    assert.equal(sanitize(""), "");
   });
 
   test("escapes backslashes", () => {
-    expect(sanitize("path\\to\\file")).toBe("path\\\\to\\\\file");
+    assert.equal(sanitize("path\\to\\file"), "path\\\\to\\\\file");
   });
 
   test("escapes double quotes", () => {
-    expect(sanitize('say "hello"')).toBe('say \\"hello\\"');
+    assert.equal(sanitize('say "hello"'), 'say \\"hello\\"');
   });
 
   test("converts newlines to AppleScript \\n", () => {
-    expect(sanitize("line1\nline2")).toBe("line1\\nline2");
+    assert.equal(sanitize("line1\nline2"), "line1\\nline2");
   });
 
   test("converts carriage returns to AppleScript \\n", () => {
-    expect(sanitize("line1\rline2")).toBe("line1\\nline2");
+    assert.equal(sanitize("line1\rline2"), "line1\\nline2");
   });
 
   test("converts CRLF to single AppleScript \\n", () => {
-    expect(sanitize("line1\r\nline2")).toBe("line1\\nline2");
+    assert.equal(sanitize("line1\r\nline2"), "line1\\nline2");
   });
 
   test("handles combined special characters", () => {
-    expect(sanitize('He said "hello\\world"\nGoodbye')).toBe(
+    assert.equal(
+      sanitize('He said "hello\\world"\nGoodbye'),
       'He said \\"hello\\\\world\\"\\nGoodbye'
     );
   });
 
   test("leaves plain text unchanged", () => {
-    expect(sanitize("Hello world 123")).toBe("Hello world 123");
+    assert.equal(sanitize("Hello world 123"), "Hello world 123");
   });
 });

@@ -17,7 +17,7 @@ A collection of [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 
 ## Requirements
 
 - **macOS 13+**
-- **Node.js** 18+ (22+ for Apple Messages)
+- **Node.js** 18+ (22+ for Apple Messages, Apple Mail, and Apple Notes)
 - **Full Disk Access** granted to your terminal app (System Settings > Privacy & Security > Full Disk Access) — required for reading the Messages database
 - **The associated Apple app must be running** for AppleScript-based servers (Notes, Contacts, Mail, Messages, Maps) — these communicate via AppleScript so the app needs to be open. Calendar and Reminders use EventKit directly and do not require the app to be open.
 
@@ -70,6 +70,27 @@ claude mcp add apple-messages -- npx @griches/apple-messages-mcp --confirm-destr
 | Reminders | `delete_reminder`, `delete_list` |
 | Calendar | `delete_event` |
 | Mail | `delete_message` |
+
+## Privacy-Safe Read Tools
+
+Apple Messages, Apple Mail, and Apple Notes now support an optional `--enable-safe-tools` flag that registers parallel `*_safe` read tools. These tools sanitize text-bearing fields before they are returned over MCP and include privacy metadata in their JSON response.
+
+Example:
+
+```bash
+claude mcp add apple-messages -- npx @griches/apple-messages-mcp --enable-safe-tools
+claude mcp add apple-mail -- npx @griches/apple-mail-mcp --enable-safe-tools
+claude mcp add apple-notes -- npx @griches/apple-notes-mcp --enable-safe-tools
+```
+
+Optional privacy flags:
+
+| Flag | Behaviour |
+|------|-----------|
+| `--enable-safe-tools` | Register privacy-safe read tools alongside raw tools |
+| `--privacy-policy <path>` | Load a JSON privacy policy override instead of the built-in defaults |
+
+Privacy-safe tools run entirely in Node and use the bundled `openredaction` engine plus a local SQLite alias store to keep placeholders stable across calls. The shared runtime stays in-repo so the safe-tool path does not depend on a separate helper process or Python installation.
 
 ## Installation
 
@@ -186,11 +207,11 @@ Then configure your MCP client to run the built files directly:
   "mcpServers": {
     "apple-notes": {
       "command": "node",
-      "args": ["/absolute/path/to/notes/build/index.js"]
+      "args": ["/absolute/path/to/notes/build/notes/src/index.js"]
     },
     "apple-messages": {
       "command": "node",
-      "args": ["/absolute/path/to/messages/build/index.js"]
+      "args": ["/absolute/path/to/messages/build/messages/src/index.js"]
     },
     "apple-contacts": {
       "command": "node",
@@ -210,7 +231,7 @@ Then configure your MCP client to run the built files directly:
     },
     "apple-mail": {
       "command": "node",
-      "args": ["/absolute/path/to/mail/build/index.js"]
+      "args": ["/absolute/path/to/mail/build/mail/src/index.js"]
     }
   }
 }
